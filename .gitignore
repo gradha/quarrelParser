@@ -1,0 +1,15 @@
+*.iml
+.DS_Store
+.gradle
+/.idea
+/.kotlin/
+/local.properties
+local.properties
+
+/captures
+/dist
+/docs/*.html
+/extra
+/nim
+/studio.vmoptions
+build/
