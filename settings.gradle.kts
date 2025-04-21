@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "quarrel_parser"
+rootProject.name = "quarrelParser"
 include(":shared")
