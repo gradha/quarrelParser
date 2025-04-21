@@ -3,6 +3,7 @@ agp = "8.9.1"
 kotlin = "2.1.10"
 dokka = "2.0.0"
 vannipublish = "0.31.0"
+buildconfig = "5.6.2"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -10,6 +11,7 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotl
 [plugins]
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 dokkaJavadoc = { id = "org.jetbrains.dokka-javadoc", version.ref = "dokka" }
+buildconfig = {id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
 vannipublish = { id = "com.vanniktech.maven.publish", version.ref = "vannipublish"}
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }

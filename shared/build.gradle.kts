@@ -1,11 +1,26 @@
 import com.vanniktech.maven.publish.SonatypeHost
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     //alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.vannipublish)
+    alias(libs.plugins.vannipublish) // https://github.com/vanniktech/gradle-maven-publish-plugin
     id("maven-publish")
+    alias(libs.plugins.buildconfig) // https://github.com/gmazzo/gradle-buildconfig-plugin
+}
+
+// The semversion, propagated through buildConfig to source code (major, minor, patch)
+val vMajor: Int = 0
+val vMinor: Int = 1
+val vPatch: Int = 1
+
+
+// https://github.com/gmazzo/gradle-buildconfig-plugin
+buildConfig {
+    useKotlinOutput { topLevelConstants = true }
+
+    buildConfigField("V_MAJOR", vMajor)
+    buildConfigField("V_MINOR", vMinor)
+    buildConfigField("V_PATCH", vPatch)
 }
 
 kotlin {
@@ -68,8 +83,7 @@ android {
  */
 
 group = "es.elhaso.quarrelParser"
-version = "0.1.1"
-
+version = "${vMajor}.${vMinor}.${vPatch}"
 
 publishing {
     repositories {
