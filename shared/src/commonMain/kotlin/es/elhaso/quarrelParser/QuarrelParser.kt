@@ -8,6 +8,11 @@ import kotlin.experimental.ExperimentalNativeApi
 
 typealias ParameterCallback = (parameter: String, value: String) -> String
 
+open class QuarrelError(message: String? = null) : Exception(message)
+class QuarrelParseError(message: String) : QuarrelError(message)
+class QuarrelMissingParamError(message: String) : QuarrelError(message)
+
+
 class QuarrelParser {
 
     /**
@@ -70,6 +75,16 @@ class QuarrelParser {
         val strVal: String
             get() {
                 return (this as ParsedString).value
+            }
+
+        val intVal: Int
+            get() {
+                return (this as ParsedInt).value
+            }
+
+        val floatVal: Float
+            get() {
+                return (this as ParsedFloat).value
             }
     }
 
@@ -173,7 +188,7 @@ class QuarrelParser {
                         val parsed: ParsedParameter = if (param.consumes != ParamKind.Empty) {
 
                             if (i + 1 >= args.size) {
-                                throw IllegalArgumentException(
+                                throw QuarrelMissingParamError(
                                     "Parameter '$arg' requires a value, but none was provided"
                                 )
                             }
@@ -260,9 +275,19 @@ private fun parseParameter(
 
     return when (paramKind) {
         ParamKind.Empty -> QuarrelParser.ParsedParameter.ParsedEmpty()
-        ParamKind.Int -> QuarrelParser.ParsedParameter.ParsedInt(value.toInt())
+        ParamKind.Int -> QuarrelParser.ParsedParameter.ParsedInt(
+            value.toIntOrNull() ?: throw QuarrelParseError(
+                "Param '$param' with value '$value' can't be parsed into integer."
+            )
+        )
+
         ParamKind.Long -> QuarrelParser.ParsedParameter.ParsedLong(value.toLong())
-        ParamKind.Float -> QuarrelParser.ParsedParameter.ParsedFloat(value.toFloat())
+        ParamKind.Float -> QuarrelParser.ParsedParameter.ParsedFloat(
+            value.toFloatOrNull() ?: throw QuarrelParseError(
+                "Param '$param' with value '$value' can't be parsed into a float."
+            )
+        )
+
         ParamKind.Double -> QuarrelParser.ParsedParameter.ParsedDouble(value.toDouble())
         ParamKind.String -> QuarrelParser.ParsedParameter.ParsedString(value)
         ParamKind.Boolean -> QuarrelParser.ParsedParameter.ParsedBoolean(value.toBoolean())
