@@ -82,10 +82,26 @@ class QuarrelParser {
                 return (this as ParsedInt).value
             }
 
+        val longVal: Long
+            get() {
+                return (this as ParsedLong).value
+            }
+
         val floatVal: Float
             get() {
                 return (this as ParsedFloat).value
             }
+
+        val doubleVal: Double
+            get() {
+                return (this as ParsedDouble).value
+            }
+
+        val booleanVal: Boolean
+            get() {
+                return (this as ParsedBoolean).value
+            }
+
     }
 
     /** Contains the results of the parsing.
@@ -281,16 +297,31 @@ private fun parseParameter(
             )
         )
 
-        ParamKind.Long -> QuarrelParser.ParsedParameter.ParsedLong(value.toLong())
+        ParamKind.Long -> QuarrelParser.ParsedParameter.ParsedLong(
+            value.toLongOrNull() ?: throw QuarrelParseError(
+                "Param '$param' with value '$value' can't be parsed into a long."
+            )
+        )
+
         ParamKind.Float -> QuarrelParser.ParsedParameter.ParsedFloat(
             value.toFloatOrNull() ?: throw QuarrelParseError(
                 "Param '$param' with value '$value' can't be parsed into a float."
             )
         )
 
-        ParamKind.Double -> QuarrelParser.ParsedParameter.ParsedDouble(value.toDouble())
+        ParamKind.Double -> QuarrelParser.ParsedParameter.ParsedDouble(
+            value.toDoubleOrNull() ?: throw QuarrelParseError(
+                "Param '$param' with value '$value' can't be parsed into a double."
+            )
+        )
+
         ParamKind.String -> QuarrelParser.ParsedParameter.ParsedString(value)
-        ParamKind.Boolean -> QuarrelParser.ParsedParameter.ParsedBoolean(value.toBoolean())
+        ParamKind.Boolean -> QuarrelParser.ParsedParameter.ParsedBoolean(
+            value.toQuarrelBooleanOrNull() ?: throw QuarrelParseError(
+                "Param '$param' with value '$value' can't be parsed into a boolean."
+            )
+        )
+
         ParamKind.Help -> QuarrelParser.ParsedParameter.ParsedHelp()
     }
 }
