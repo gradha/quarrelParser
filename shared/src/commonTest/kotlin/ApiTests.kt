@@ -1,3 +1,4 @@
+import es.elhaso.quarrelParser.ParameterCallback
 import es.elhaso.quarrelParser.QuarrelMissingParamError
 import es.elhaso.quarrelParser.QuarrelParseError
 import es.elhaso.quarrelParser.QuarrelParser
@@ -109,6 +110,21 @@ class ApiTests {
         assert(ret.testPositional(111.111))
         assert(ret.testPositional(9.01))
         assert(ret.testPositional(9.02) == false)
+
+        // Using custom procs for transformation of type back to string.
+        val c1 = ParameterSpecification(listOf("-i"), ParamKind.Int)
+        ret = parse(listOf("-i", "42"), listOf(c1))
+        assert(ret.options["-i"]?.intVal == 42)
+
+        val c2 = c1.copy(
+            customValidator = { parameter: String, inputParameter: QuarrelParser.ParsedParameter ->
+                val age = inputParameter.intVal
+                if (age < 18)
+                    throw IllegalArgumentException("Can't accept minors ($age) passing arguments")
+                QuarrelParser.ParsedParameter.ParsedString("valid_$parameter")
+            }
+        )
+        assertFailsWith(IllegalArgumentException::class) { parse(listOf("-i", "17"), listOf(c2)) }
     }
 }
 

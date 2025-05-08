@@ -6,7 +6,26 @@ import es.elhaso.quarrelParser.shared.V_MINOR
 import es.elhaso.quarrelParser.shared.V_PATCH
 import kotlin.experimental.ExperimentalNativeApi
 
-typealias ParameterCallback = (parameter: String, value: String) -> String
+/** Prototype of parameter callbacks.
+ *
+ * A parameter callback is just a custom function you provide which is invoked
+ * after a parameter is parsed passing the basic type validation. The
+ * `parameter] parameter is the string which triggered the option. The
+ * `value` parameter contains the [QuarrelParser.ParsedParameter] already parsed
+ * into the basic type you specified for it.
+ *
+ * The callback fun has to decide to change the input `value` or not. If
+ * nothing is to be done, your fun can simply pass back again the `inputParameter`.
+ * But if you want to change it, you can return any new custom value. In fact, if you
+ * need special parsing, most likely you will end up specifying
+ * [QuarrelParser.ParamKind.String] in the parameter input specification so
+ * that the [QuarrelParser.parse] fun doesn't
+ * *mangle* the string before you can process it yourself.
+ *
+ * If the callback decides to abort the validation of the parameter, can
+ * simply throw any exception.
+ */
+typealias ParameterCallback = (parameter: String, inputParameter: QuarrelParser.ParsedParameter) -> QuarrelParser.ParsedParameter
 
 open class QuarrelError(message: String? = null) : Exception(message)
 class QuarrelParseError(message: String) : QuarrelError(message)
@@ -214,9 +233,11 @@ class QuarrelParser {
                                 value = args[i + 1],
                                 paramKind = param.consumes
                             )
-                            // TODO: Run custom proc
                             i++
-                            parsed
+                            if (param.customValidator != null)
+                                param.customValidator(arg, parsed)
+                            else
+                                parsed
                         } else {
                             ParsedParameter.ParsedEmpty()
                         }
