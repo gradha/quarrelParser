@@ -1,4 +1,3 @@
-import es.elhaso.quarrelParser.ParameterCallback
 import es.elhaso.quarrelParser.QuarrelMissingParamError
 import es.elhaso.quarrelParser.QuarrelParseError
 import es.elhaso.quarrelParser.QuarrelParser
@@ -9,25 +8,29 @@ import kotlin.experimental.ExperimentalNativeApi
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
+@OptIn(ExperimentalNativeApi::class)
 class ApiTests {
 
-    @OptIn(ExperimentalNativeApi::class)
-    @Test
-    fun test() {
-        val p1 = ParameterSpecification(listOf("-a"), ParamKind.String)
-        val p2 = ParameterSpecification(listOf("--aasd"), ParamKind.String)
-        val p3 = ParameterSpecification(listOf("-i"), ParamKind.Int)
-        val p4 = ParameterSpecification(listOf("-f"), ParamKind.Float)
-        val p5 = ParameterSpecification(listOf("-b"), ParamKind.Boolean)
-        val p6 = ParameterSpecification(listOf("-I"), ParamKind.Long)
-        val p7 = ParameterSpecification(listOf("-F"), ParamKind.Double)
-        val allParams = listOf(p1, p2, p3, p4, p5, p6, p7)
+    val p1 = ParameterSpecification(listOf("-a"), ParamKind.String)
+    val p2 = ParameterSpecification(listOf("--aasd"), ParamKind.String)
+    val p3 = ParameterSpecification(listOf("-i"), ParamKind.Int)
+    val p4 = ParameterSpecification(listOf("-f"), ParamKind.Float)
+    val p5 = ParameterSpecification(listOf("-b"), ParamKind.Boolean)
+    val p6 = ParameterSpecification(listOf("-I"), ParamKind.Long)
+    val p7 = ParameterSpecification(listOf("-F"), ParamKind.Double)
+    val allParams = listOf(p1, p2, p3, p4, p5, p6, p7)
 
+    @Test
+    fun `Parse test`() {
         val exerciseParser = parse(listOf("foo", "bar"), allParams)
         println("Parsed $exerciseParser")
+        assert(exerciseParser.positionalParameters.size == 2)
+    }
 
+    @Test
+    fun `Positional tests`() {
         val args = listOf("test", "toca me la", "-a", "-wo", "rd", "--aasd", "--s", "ugh")
-        var ret = parse(args, allParams)
+        val ret = parse(args, allParams)
         println("Got $ret")
         assert(ret.options["-a"]?.strVal == "-wo")
         assert(ret.options.containsKey("test") == false)
@@ -35,8 +38,10 @@ class ApiTests {
         assert(ret.testPositional("--s") == false)
         assert(ret.testPositional("ugh"))
         assertFailsWith(QuarrelParseError::class) { parse(args, allParams, ParamKind.Int) }
+    }
 
-        // Integer tests
+    @Test
+    fun `Integer tests`() {
         parse(listOf("int test", "-i", "445"), allParams)
         parse(listOf("int test", "-i", "-445"), allParams)
         assertFailsWith(QuarrelMissingParamError::class) { parse(listOf("-i"), allParams) }
@@ -48,7 +53,7 @@ class ApiTests {
         assertFailsWith(QuarrelParseError::class) {
             parse(listOf("-i", Int.MAX_VALUE.toString() + "0"), allParams)
         }
-        ret = parse(listOf("-i", "-445", "2", "3", "4"), allParams, ParamKind.Int)
+        val ret = parse(listOf("-i", "-445", "2", "3", "4"), allParams, ParamKind.Int)
         assertFailsWith(QuarrelParseError::class) {
             parse(listOf("-i", "-445", "2", "3", "4.3"), allParams, ParamKind.Int)
         }
@@ -57,26 +62,32 @@ class ApiTests {
         assert(ret.testPositional(3))
         assert(ret.testPositional(4))
         assert(ret.testPositional(5) == false)
+    }
 
-        // String tests
+    @Test
+    fun `String tests`() {
         parse(listOf("str test", "-a", "word"), allParams)
         parse(listOf("str empty test", "-a", ""), allParams)
         assertFailsWith(QuarrelMissingParamError::class) {
             parse(listOf("str test", "-a"), allParams)
         }
+    }
 
-        // Float tests.
+    @Test
+    fun `Float tests`() {
         parse(listOf("-f", "123.235"), allParams)
         assertFailsWith(QuarrelParseError::class) { parse(listOf("-f", ""), allParams) }
         assertFailsWith(QuarrelParseError::class) { parse(listOf("-f", "abracadabra"), allParams) }
         assertFailsWith(QuarrelParseError::class) { parse(listOf("-f", "12.34aadd"), allParams) }
-        ret = parse(listOf("-f", "12.23", "89.2", "3.14"), allParams, ParamKind.Float)
+        val ret = parse(listOf("-f", "12.23", "89.2", "3.14"), allParams, ParamKind.Float)
         assert(ret.options["-f"]?.floatVal == 12.23f)
         assert(ret.testPositional(89.2f))
         assert(ret.testPositional(3.14f))
         assert(ret.testPositional(3.1f) == false)
+    }
 
-        // Boolean tests.
+    @Test
+    fun `Boolean tests`() {
         listOf("y", "yes", "true", "1", "on", "n", "no", "false", "0", "off").forEach {
             parse(listOf("-b", it), allParams)
         }
@@ -85,7 +96,19 @@ class ApiTests {
         parse(listOf("y"), allParams, ParamKind.Boolean).testPositional(true)
         parse(listOf("0"), allParams, ParamKind.Boolean).testPositional(false)
 
-        // Big integer tests.
+        // Try using now the second version of the switches
+        val boolArgs = listOf("file1", "--silent")
+        var res = parse(boolArgs, listOf(ParameterSpecification(listOf("-s", "--silent"))))
+        assert(res.options.containsKey("-s"))
+        assert(!res.options.containsKey("--silent"))
+
+        res = parse(boolArgs, listOf(ParameterSpecification(listOf("--silent", "-s"))))
+        assert(!res.options.containsKey("-s"))
+        assert(res.options.containsKey("--silent"))
+    }
+
+    @Test
+    fun `Long tests`() {
         parse(listOf("int test", "-I", "445"), allParams)
         assertFailsWith(QuarrelParseError::class) { parse(listOf("-I", ""), allParams) }
         assertFailsWith(QuarrelParseError::class) { parse(listOf("-I", "fail"), allParams) }
@@ -96,36 +119,86 @@ class ApiTests {
         assertFailsWith(QuarrelParseError::class) {
             parse(listOf("-I", Long.MAX_VALUE.toString() + "0"), allParams)
         }
-        ret = parse(listOf("42", Long.MAX_VALUE.toString()), allParams, ParamKind.Long)
+        val ret = parse(listOf("42", Long.MAX_VALUE.toString()), allParams, ParamKind.Long)
         assert(ret.testPositional(42L))
         assert(ret.testPositional(Long.MAX_VALUE))
         assert(ret.testPositional(13L) == false)
+    }
 
-        // Double tests.
+    @Test
+    fun `Double tests`() {
         parse(listOf("-F", "123.235"), allParams)
         assertFailsWith(QuarrelParseError::class) { parse(listOf("-F", ""), allParams) }
         assertFailsWith(QuarrelParseError::class) { parse(listOf("-F", "abracadabra"), allParams) }
         assertFailsWith(QuarrelParseError::class) { parse(listOf("-F", "12.34aadd"), allParams) }
-        ret = parse(listOf("111.111", "9.01"), allParams, ParamKind.Double)
+        val ret = parse(listOf("111.111", "9.01"), allParams, ParamKind.Double)
         assert(ret.testPositional(111.111))
         assert(ret.testPositional(9.01))
         assert(ret.testPositional(9.02) == false)
+    }
 
-        // Using custom procs for transformation of type back to string.
+    @Test
+    fun `Using custom procs for transformation of type back to string`() {
         val c1 = ParameterSpecification(listOf("-i"), ParamKind.Int)
-        ret = parse(listOf("-i", "42"), listOf(c1))
+        var ret = parse(listOf("-i", "42"), listOf(c1))
         assert(ret.options["-i"]?.intVal == 42)
 
         val c2 = c1.copy(
             customValidator = { parameter: String, inputParameter: QuarrelParser.ParsedParameter ->
+                QuarrelParser.ParsedParameter.ParsedString(inputParameter.intVal.toString())
+            }
+        )
+        ret = parse(listOf("-i", "42"), listOf(c2))
+        assert(ret.options["-i"]?.strVal == "42")
+    }
+
+    @Test
+    fun `Use a custom callback to reject values lower than 18`() {
+        val c1 = ParameterSpecification(listOf("-i"), ParamKind.Int)
+        var ret = parse(listOf("-i", "42"), listOf(c1))
+        assert(ret.options["-i"]?.intVal == 42)
+
+        val c3 = c1.copy(
+            customValidator = { parameter: String, inputParameter: QuarrelParser.ParsedParameter ->
                 val age = inputParameter.intVal
                 if (age < 18)
                     throw IllegalArgumentException("Can't accept minors ($age) passing arguments")
-                QuarrelParser.ParsedParameter.ParsedString("valid_$parameter")
+                QuarrelParser.ParsedParameter.ParsedString("valid_${inputParameter.intVal}")
             }
         )
-        assertFailsWith(IllegalArgumentException::class) { parse(listOf("-i", "17"), listOf(c2)) }
+        ret = parse(listOf("-i", "42"), listOf(c3))
+        assert(ret.options["-i"]?.strVal == "valid_42")
+        assertFailsWith(IllegalArgumentException::class) { parse(listOf("-i", "17"), listOf(c3)) }
     }
+
+    @Test
+    fun `Wrong parser input conditions`() {
+        // Disallow multiple parameters being the same
+        val c1 = ParameterSpecification(listOf("-a", "-a"))
+        assertFailsWith(IllegalArgumentException::class) { parse(listOf(), listOf(c1)) }
+
+        // Also disallow multiple parameters being the same in different options
+        val c2 = ParameterSpecification(listOf("-a", "--alt"))
+        val c3 = ParameterSpecification(listOf("-p", "--pert"))
+        val c4 = ParameterSpecification(listOf("-z", "--alt"))
+        assertFailsWith(IllegalArgumentException::class) { parse(listOf(), listOf(c2, c3, c4)) }
+
+        // Ambiguous parameters
+        assertFailsWith(IllegalArgumentException::class) {
+            parse(listOf("-bleah", "something"), allParams)
+        }
+        // This will work because we are using the disambiguator
+        parse(listOf("--", "-bleah", "something"), allParams)
+        // This should work too because we changed the pad prefixes
+        parse(listOf("-bl", "so"), allParams, badPrefixes = listOf())
+        // This should detect new prefixes
+        assertFailsWith(IllegalArgumentException::class) {
+            parse(listOf("/bl", "so"), allParams, badPrefixes = listOf("/"))
+        }
+        // Mix new prefixes plus end of parsing options.
+        parse(listOf("-*-", "/bĸ", "a"), allParams, badPrefixes = listOf("/"), endOfOptions = "-*-")
+    }
+
 }
 
 private inline fun <reified T> QuarrelParser.CommandlineResults.testPositional(value: T): Boolean {

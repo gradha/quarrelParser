@@ -10,8 +10,8 @@ import kotlin.experimental.ExperimentalNativeApi
  *
  * A parameter callback is just a custom function you provide which is invoked
  * after a parameter is parsed passing the basic type validation. The
- * `parameter] parameter is the string which triggered the option. The
- * `value` parameter contains the [QuarrelParser.ParsedParameter] already parsed
+ * first parameter is the string which triggered the option. The
+ * second parameter contains the [QuarrelParser.ParsedParameter] already parsed
  * into the basic type you specified for it.
  *
  * The callback fun has to decide to change the input `value` or not. If
@@ -19,7 +19,7 @@ import kotlin.experimental.ExperimentalNativeApi
  * But if you want to change it, you can return any new custom value. In fact, if you
  * need special parsing, most likely you will end up specifying
  * [QuarrelParser.ParamKind.String] in the parameter input specification so
- * that the [QuarrelParser.parse] fun doesn't
+ * that the [QuarrelParser.parse] function doesn't
  * *mangle* the string before you can process it yourself.
  *
  * If the callback decides to abort the validation of the parameter, can
@@ -57,7 +57,6 @@ class QuarrelParser {
      */
     enum class ParamKind {
         Empty, Int, Long, Float, Double, String, Boolean, Help;
-
     }
 
     /** Holds the expectations of a parameter.
@@ -69,8 +68,8 @@ class QuarrelParser {
         /** List of possible parameters to catch for this. */
         val names: List<String>,
         /** Expected type of the parameter ([QuarrelParser.ParamKind.Empty] for none). */
-        val consumes: ParamKind,
-        /** Optional custom callback to run after type conversion. */
+        val consumes: ParamKind = ParamKind.Empty,
+        /** Optional custom callback to run after type conversion. See [ParameterCallback]. */
         val customValidator: ParameterCallback? = null,
         /** Help for this group of parameters. */
         val helpText: String = "",
