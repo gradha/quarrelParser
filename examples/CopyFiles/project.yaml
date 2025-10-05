@@ -1,0 +1,6 @@
+modules:
+  #- windows-cli
+  #- jvm-cli
+  #- linux-cli
+  - macos-cli
+  - shared

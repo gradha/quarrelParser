@@ -1,9 +1,11 @@
 package es.elhaso.quarrelparser
 
 import es.elhaso.quarrelparser.QuarrelParser.ParamKind
+import es.elhaso.quarrelparser.QuarrelParser.ParameterSpecification
 import es.elhaso.quarrelparser.shared.V_MAJOR
 import es.elhaso.quarrelparser.shared.V_MINOR
 import es.elhaso.quarrelparser.shared.V_PATCH
+import platform.posix.exit
 import kotlin.experimental.ExperimentalNativeApi
 
 /** Prototype of parameter callbacks.
@@ -69,10 +71,10 @@ class QuarrelParser {
         val names: List<String>,
         /** Expected type of the parameter ([QuarrelParser.ParamKind.Empty] for none). */
         val consumes: ParamKind = ParamKind.Empty,
-        /** Optional custom callback to run after type conversion. See [ParameterCallback]. */
-        val customValidator: ParameterCallback? = null,
         /** Help for this group of parameters. */
         val helpText: String = "",
+        /** Optional custom callback to run after type conversion. See [ParameterCallback]. */
+        val customValidator: ParameterCallback? = null,
     )
 
     /** Contains the parsed value from the user.
@@ -142,11 +144,8 @@ class QuarrelParser {
 
     companion object {
 
-        val version: Version = Version(
-            major = V_MAJOR,
-            minor = V_MINOR,
-            patch = V_PATCH
-        )
+        val version: Version =
+            Version(major = V_MAJOR, minor = V_MINOR, patch = V_PATCH)
 
         const val DEFAULT_END_OPTIONS = "--"
         val DEFAULT_BAD_PREFIXES = listOf("-", "--")
@@ -185,6 +184,7 @@ class QuarrelParser {
             kindOfPositionalParameters: ParamKind = ParamKind.String,
             badPrefixes: List<String> = DEFAULT_BAD_PREFIXES,
             endOfOptions: String = DEFAULT_END_OPTIONS,
+            quitOnFailure: Boolean = true,
         ): CommandlineResults {
 
             assert(
@@ -219,18 +219,17 @@ class QuarrelParser {
 
                         // Insert check here for help, which aborts parsing.
                         if (param.consumes == ParamKind.Help) {
-                            echoHelp(
-                                expected, kindOfPositionalParameters,
-                                badPrefixes, endOfOptions
-                            )
-                            throw IllegalStateException("Eh, abort due to help?")
+                            expected.println()
+                            quitOnFailure.throwOrQuit(IllegalStateException())
                         }
 
                         val parsed: ParsedParameter = if (param.consumes != ParamKind.Empty) {
 
                             if (i + 1 >= args.size) {
-                                throw QuarrelMissingParamError(
-                                    "Parameter '$arg' requires a value, but none was provided"
+                                quitOnFailure.throwOrQuit(
+                                    QuarrelMissingParamError(
+                                        "Parameter '$arg' requires a value, but none was provided"
+                                    )
                                 )
                             }
 
@@ -255,10 +254,12 @@ class QuarrelParser {
                         // Add the parameter as positional, but check if it is confusing.
                         badPrefixes.forEach { badPrefix ->
                             if (arg.startsWith(badPrefix))
-                                throw IllegalArgumentException(
-                                    "Found ambiguous parameter '$arg' starting with '$badPrefix', " +
-                                            "put '$endOfOptions' as the previous parameter " +
-                                            "if you want to force it as positional parameter."
+                                quitOnFailure.throwOrQuit(
+                                    IllegalArgumentException(
+                                        "Found ambiguous parameter '$arg' starting with '$badPrefix', " +
+                                                "put '$endOfOptions' as the previous parameter " +
+                                                "if you want to force it as positional parameter."
+                                    )
                                 )
                         }
                     }
@@ -280,14 +281,92 @@ class QuarrelParser {
                 options = options,
             )
         }
+
+        /* Builds basic help text and returns it as a sequence of strings.
+         *
+         * Note that this proc doesn't do as much sanity checks as the normal parse()
+         * proc, though it's unlikely you will be using one without the other, so if
+         * you had a parameter specification problem you would find out soon.
+         */
+        fun buildHelp(expected: List<ParameterSpecification>): List<String> {
+            val result = mutableListOf("Usage parameters: ")
+
+            // Generate lookup table for each type of parameter based on strings.
+            val lookup = buildSpecificationLookup(expected)
+            val keys = lookup.keys.toList()
+            val prefixes = mutableListOf<String>()
+            val helps = mutableListOf<String>()
+            val seen = mutableSetOf<String>()
+
+            // First generate the joined version of input parameters in a list.
+            for (key in keys) {
+                if (seen.contains(key)) continue
+
+                // Add the joined string to the list
+                val param = lookup[key]!!
+                val param_names = param.names.sorted()
+                var prefix = param_names.joinToString(", ")
+                // Don't forget about the type, if the parameter consumes values
+                if (param.consumes != ParamKind.Empty && param.consumes != ParamKind.Help) prefix =
+                    "$prefix ${param.consumes}"
+
+                prefixes.add(prefix)
+                helps.add(param.helpText)
+                // Ignore future elements
+                param.names.forEach { seen.add(it) }
+            }
+
+            // Calculate the biggest width and try to use that
+            val width = prefixes.maxOf { 3 + it.length }
+
+            prefixes.zip(helps).forEach { (prefix, help) ->
+                result.add(prefix.padEnd(width - prefix.length) + " $help")
+            }
+
+            return result
+        }
+
+        /** Prints the result of [buildHelp].
+         */
+        fun println(expected: List<ParameterSpecification>) {
+            buildHelp(expected).forEach { println(it) }
+        }
     }
 }
 
+/** Avoids repeating if check based on the default `quitOnFailure` variable.
+ *
+ * As a special case, if [message] has a zero length the call to quit won't
+ * generate any messages or errors (used by the mechanism to echo help to the
+ * user).
+ */
+private fun Boolean.throwOrQuit(exception: Exception) {
+    if (this) {
+        if (exception.message?.isNotEmpty() == true)
+            println(exception.message)
+        exit(1)
+    } else {
+        throw exception
+    }
+}
+
+/** See [QuarrelParser.buildHelp].
+ */
+fun List<QuarrelParser.ParameterSpecification>.buildHelp(): List<String> =
+    QuarrelParser.buildHelp(this)
+
+/** See [QuarrelParser.println].
+ */
+fun List<QuarrelParser.ParameterSpecification>.println(): Unit =
+    QuarrelParser.println(this)
+
+
 private fun buildSpecificationLookup(
-    expected: List<QuarrelParser.ParameterSpecification>
+    expected: List<QuarrelParser.ParameterSpecification>,
 ): Map<String, QuarrelParser.ParameterSpecification> {
 
-    val result = LinkedHashMap<String, QuarrelParser.ParameterSpecification>(expected.size * 2)
+    val result =
+        LinkedHashMap<String, QuarrelParser.ParameterSpecification>(expected.size * 2)
 
     for (i in 0 until expected.size) {
         for (paramToDetect in expected[i].names) {
@@ -350,66 +429,5 @@ private fun parseParameter(
         )
 
         ParamKind.Help -> QuarrelParser.ParsedParameter.ParsedHelp()
-    }
-}
-
-/* Builds basic help text and returns it as a sequence of strings.
- *
- * Note that this proc doesn't do as much sanity checks as the normal parse()
- * proc, though it's unlikely you will be using one without the other, so if
- * you had a parameter specification problem you would find out soon.
- */
-fun buildHelp(
-    expected: List<QuarrelParser.ParameterSpecification> = emptyList(),
-    kindOfPositionalParameters: ParamKind = ParamKind.String,
-    badPrefixes: List<String> = QuarrelParser.DEFAULT_BAD_PREFIXES,
-    endOfOptions: String = QuarrelParser.DEFAULT_END_OPTIONS,
-): List<String> {
-    val result = mutableListOf("Usage parameters: ")
-
-    // Generate lookup table for each type of parameter based on strings.
-    val lookup = buildSpecificationLookup(expected)
-    val keys = lookup.keys.toList()
-    val prefixes = mutableListOf<String>()
-    val helps = mutableListOf<String>()
-    val seen = mutableSetOf<String>()
-
-    // First generate the joined version of input parameters in a list.
-    for (key in keys) {
-        if (seen.contains(key))
-            continue
-
-        // Add the joined string to the list
-        val param = lookup[key]!!
-        val param_names = param.names.sorted()
-        var prefix = param_names.joinToString(", ")
-        // Don't forget about the type, if the parameter consumes values
-        if (param.consumes != ParamKind.Empty && param.consumes != ParamKind.Help)
-            prefix = "$prefix ${param.consumes}"
-
-        prefixes.add(prefix)
-        helps.add(param.helpText)
-        // Ignore future elements
-        param.names.forEach { seen.add(it) }
-    }
-
-    // Calculate the biggest width and try to use that
-    val width = prefixes.maxOf { 3 + it.length }
-
-    prefixes.zip(helps).forEach { (prefix, help) ->
-        result.add(prefix.padEnd(width - prefix.length) + " $help")
-    }
-
-    return result
-}
-
-private fun echoHelp(
-    expected: List<QuarrelParser.ParameterSpecification>,
-    kindOfPositionalParameters: ParamKind,
-    badPrefixes: List<String>,
-    endOfOptions: String,
-) {
-    buildHelp(expected, kindOfPositionalParameters, badPrefixes, endOfOptions).forEach { line ->
-        println(line)
     }
 }

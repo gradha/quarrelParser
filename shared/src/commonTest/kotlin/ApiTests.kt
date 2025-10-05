@@ -1,12 +1,30 @@
 import es.elhaso.quarrelparser.QuarrelMissingParamError
 import es.elhaso.quarrelparser.QuarrelParseError
 import es.elhaso.quarrelparser.QuarrelParser
-import es.elhaso.quarrelparser.QuarrelParser.Companion.parse
+import es.elhaso.quarrelparser.QuarrelParser.CommandlineResults
+import es.elhaso.quarrelparser.QuarrelParser.Companion.DEFAULT_BAD_PREFIXES
+import es.elhaso.quarrelparser.QuarrelParser.Companion.DEFAULT_END_OPTIONS
 import es.elhaso.quarrelparser.QuarrelParser.ParamKind
 import es.elhaso.quarrelparser.QuarrelParser.ParameterSpecification
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+
+private fun parse(
+    args: List<String>,
+    expected: List<ParameterSpecification> = listOf(),
+    kindOfPositionalParameters: ParamKind = ParamKind.String,
+    badPrefixes: List<String> = DEFAULT_BAD_PREFIXES,
+    endOfOptions: String = DEFAULT_END_OPTIONS,
+): CommandlineResults =
+    QuarrelParser.parse(
+        args = args,
+        expected = expected,
+        kindOfPositionalParameters = kindOfPositionalParameters,
+        badPrefixes = badPrefixes,
+        endOfOptions = endOfOptions,
+        quitOnFailure = false,
+    )
 
 @OptIn(ExperimentalNativeApi::class)
 class ApiTests {

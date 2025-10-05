@@ -1,0 +1,13 @@
+product:
+  type: lib
+  #platforms: [ jvm, linuxArm64, linuxX64, macosArm64, mingwX64 ]
+  platforms: [ macosArm64 ]
+
+test-dependencies@jvm:
+  - $kotlin.test.junit5
+
+dependencies:
+  - es.elhaso.quarrelparser:quarrelparser:0.1.1
+
+repositories:
+  - mavenLocal
