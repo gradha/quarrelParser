@@ -148,6 +148,9 @@ class QuarrelParser {
             patch = V_PATCH
         )
 
+        const val DEFAULT_END_OPTIONS = "--"
+        val DEFAULT_BAD_PREFIXES = listOf("-", "--")
+
         /** Parses parameters and returns results.
          *
          * If there is any kind of error during parsing an exception will be raised.
@@ -161,23 +164,27 @@ class QuarrelParser {
          * considered positional parameters for which you can specify a type with
          * [kindOfPositionalParameters].
          *
+         * @param kindOfPositionalParameters the [ParamKind] for positional parameters.
+         * By default [ParamKind.String].
+         *
          * @param badPrefixes Before accepting a positional parameter, the list of
          * [badPrefixes] is compared against it. If the positional parameter starts
-         * with any of them, * an error is displayed to the user due to ambiguity.
+         * with any of them, an error is displayed to the user due to ambiguity.
+         * See [DEFAULT_BAD_PREFIXES].
          *
          * @param endOfOptions The user can overcome
          * the ambiguity by typing the special string specified by [endOfOptions].
          * Note that values captured by parameters are not checked against bad
          * prefixes, otherwise it would be a problem to specify the dash as synonym
-         * for standard input for many programs.
+         * for standard input for many programs. See [DEFAULT_END_OPTIONS].
          */
         @OptIn(ExperimentalNativeApi::class)
         fun parse(
             args: List<String>,
             expected: List<ParameterSpecification> = listOf(),
             kindOfPositionalParameters: ParamKind = ParamKind.String,
-            badPrefixes: List<String> = listOf("-", "--"),
-            endOfOptions: String = "--",
+            badPrefixes: List<String> = DEFAULT_BAD_PREFIXES,
+            endOfOptions: String = DEFAULT_END_OPTIONS,
         ): CommandlineResults {
 
             assert(
@@ -346,11 +353,63 @@ private fun parseParameter(
     }
 }
 
-private fun echoHelp(
+/* Builds basic help text and returns it as a sequence of strings.
+ *
+ * Note that this proc doesn't do as much sanity checks as the normal parse()
+ * proc, though it's unlikely you will be using one without the other, so if
+ * you had a parameter specification problem you would find out soon.
+ */
+fun buildHelp(
     expected: List<QuarrelParser.ParameterSpecification> = emptyList(),
     kindOfPositionalParameters: ParamKind = ParamKind.String,
-    badPrefixes: List<String> = listOf("-", "--"),
-    endOfOptions: String = "--",
+    badPrefixes: List<String> = QuarrelParser.DEFAULT_BAD_PREFIXES,
+    endOfOptions: String = QuarrelParser.DEFAULT_END_OPTIONS,
+): List<String> {
+    val result = mutableListOf("Usage parameters: ")
+
+    // Generate lookup table for each type of parameter based on strings.
+    val lookup = buildSpecificationLookup(expected)
+    val keys = lookup.keys.toList()
+    val prefixes = mutableListOf<String>()
+    val helps = mutableListOf<String>()
+    val seen = mutableSetOf<String>()
+
+    // First generate the joined version of input parameters in a list.
+    for (key in keys) {
+        if (seen.contains(key))
+            continue
+
+        // Add the joined string to the list
+        val param = lookup[key]!!
+        val param_names = param.names.sorted()
+        var prefix = param_names.joinToString(", ")
+        // Don't forget about the type, if the parameter consumes values
+        if (param.consumes != ParamKind.Empty && param.consumes != ParamKind.Help)
+            prefix = "$prefix ${param.consumes}"
+
+        prefixes.add(prefix)
+        helps.add(param.helpText)
+        // Ignore future elements
+        param.names.forEach { seen.add(it) }
+    }
+
+    // Calculate the biggest width and try to use that
+    val width = prefixes.maxOf { 3 + it.length }
+
+    prefixes.zip(helps).forEach { (prefix, help) ->
+        result.add(prefix.padEnd(width - prefix.length) + " $help")
+    }
+
+    return result
+}
+
+private fun echoHelp(
+    expected: List<QuarrelParser.ParameterSpecification>,
+    kindOfPositionalParameters: ParamKind,
+    badPrefixes: List<String>,
+    endOfOptions: String,
 ) {
-    println("Print help to terminal, TODO")
+    buildHelp(expected, kindOfPositionalParameters, badPrefixes, endOfOptions).forEach { line ->
+        println(line)
+    }
 }
