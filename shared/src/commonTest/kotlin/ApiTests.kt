@@ -1,9 +1,9 @@
-import es.elhaso.quarrelParser.QuarrelMissingParamError
-import es.elhaso.quarrelParser.QuarrelParseError
-import es.elhaso.quarrelParser.QuarrelParser
-import es.elhaso.quarrelParser.QuarrelParser.Companion.parse
-import es.elhaso.quarrelParser.QuarrelParser.ParamKind
-import es.elhaso.quarrelParser.QuarrelParser.ParameterSpecification
+import es.elhaso.quarrelparser.QuarrelMissingParamError
+import es.elhaso.quarrelparser.QuarrelParseError
+import es.elhaso.quarrelparser.QuarrelParser
+import es.elhaso.quarrelparser.QuarrelParser.Companion.parse
+import es.elhaso.quarrelparser.QuarrelParser.ParamKind
+import es.elhaso.quarrelparser.QuarrelParser.ParameterSpecification
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.test.Test
 import kotlin.test.assertFailsWith

@@ -82,7 +82,7 @@ android {
 }
  */
 
-group = "es.elhaso.quarrelParser"
+group = "es.elhaso.quarrelparser"
 version = "${vMajor}.${vMinor}.${vPatch}"
 
 publishing {
@@ -103,7 +103,7 @@ mavenPublishing {
     //if (isRelease == "true")
     //    signAllPublications()
 
-    coordinates(group.toString(), "quarrelParser", version.toString())
+    coordinates(group.toString(), "quarrelparser", version.toString())
 
     pom {
         name = "Python inspired command line argument parsing"

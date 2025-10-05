@@ -1,4 +1,4 @@
-package es.elhaso.quarrelParser
+package es.elhaso.quarrelparser
 
 
 /** Parses a string into a boolean value or throws.

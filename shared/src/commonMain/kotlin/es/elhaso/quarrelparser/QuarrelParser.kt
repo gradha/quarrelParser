@@ -1,9 +1,9 @@
-package es.elhaso.quarrelParser
+package es.elhaso.quarrelparser
 
-import es.elhaso.quarrelParser.QuarrelParser.ParamKind
-import es.elhaso.quarrelParser.shared.V_MAJOR
-import es.elhaso.quarrelParser.shared.V_MINOR
-import es.elhaso.quarrelParser.shared.V_PATCH
+import es.elhaso.quarrelparser.QuarrelParser.ParamKind
+import es.elhaso.quarrelparser.shared.V_MAJOR
+import es.elhaso.quarrelparser.shared.V_MINOR
+import es.elhaso.quarrelparser.shared.V_PATCH
 import kotlin.experimental.ExperimentalNativeApi
 
 /** Prototype of parameter callbacks.
